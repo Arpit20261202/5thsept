@@ -16,8 +16,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-    - name: Debug - List directory contents
-       run: ls -la
+      # Debug - List directory contents
+      - name: Debug - List directory contents
+        run: ls -la
 
       # Step 2 - Install Java
       - name: Setup Java
