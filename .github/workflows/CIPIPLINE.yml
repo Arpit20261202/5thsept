@@ -1,12 +1,10 @@
-name: DevOps Secure CI Pipeline
+name: Java DevOps Secure CI Pipeline
 
 on:
   push:
     branches: [main, master]
-
   pull_request:
     branches: [main, master]
-
   workflow_dispatch:
 
 permissions:
@@ -15,107 +13,35 @@ permissions:
 
 jobs:
 
-# -----------------------------
-# JOB 1 - BUILD + CACHE + TEST
-# -----------------------------
+  # JOB 1 - BUILD + TEST
   build_test:
     name: Build and Test
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout Repository
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Install Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          node-version: 24
-          cache: npm
+          distribution: temurin
+          java-version: 17
+          cache: maven
 
-      # Cache npm packages
-      - name: Cache Node Modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: node-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            node-${{ runner.os }}-
+      - name: Build Project
+        run: mvn clean package
 
-      # Install Dependencies
-      - name: Install Dependencies
-        run: npm install
+      - name: Run Tests
+        run: mvn test
 
-      # Build Project
-      - name: Build Application
-        run: npm run build --if-present
-
-      # Run Tests
-      - name: Run Unit Tests
-        run: npm test --if-present
-
-      # Create Artifact Folder
-      - name: Create Build Folder
-        run: |
-          mkdir -p artifact
-          cp -r . artifact/
-
-      # Upload Artifact
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: node-build-files
-          path: artifact/
+          name: java-build-files
+          path: target/
 
-
-# -----------------------------
-# JOB 2 - SAST (npm audit)
-# -----------------------------
-  sast_scan:
-    name: Security Scan (npm audit)
-    needs: build_test
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - run: npm install
-
-      - name: Run npm Audit
-        run: npm audit --audit-level=moderate
-
-
-# -----------------------------
-# JOB 3 - CODEQL SCAN
-# -----------------------------
-  codeql_scan:
-    name: CodeQL Scan
-    needs: build_test
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      - name: Analyze Code
-        uses: github/codeql-action/analyze@v3
-
-
-# -----------------------------
-# JOB 4 - TRIVY SCAN
-# -----------------------------
+  # JOB 2 - TRIVY SCAN
   trivy_scan:
     name: Trivy Filesystem Scan
     needs: build_test
@@ -131,10 +57,7 @@ jobs:
           scan-ref: .
           format: table
 
-
-# -----------------------------
-# JOB 5 - DOWNLOAD ARTIFACT
-# -----------------------------
+  # JOB 3 - DOWNLOAD ARTIFACT
   download_artifact:
     name: Download Artifact
     needs: build_test
@@ -143,28 +66,21 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: node-build-files
+          name: java-build-files
           path: downloaded-files
 
       - name: Verify Artifact
         run: ls -R downloaded-files
 
-
-# -----------------------------
-# JOB 6 - STATUS CHECK
-# -----------------------------
+  # JOB 4 - STATUS CHECK
   pipeline_status:
     name: Final Status Check
     needs:
       - build_test
-      - sast_scan
-      - codeql_scan
       - trivy_scan
       - download_artifact
-
     runs-on: ubuntu-latest
-
     if: success()
 
     steps:
-      - run: echo "🎉 Complete DevOps Pipeline Passed Successfully"
+      - run: echo "🎉 Java DevOps Pipeline Passed Successfully ✅"
