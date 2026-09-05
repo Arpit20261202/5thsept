@@ -1,0 +1,14 @@
+{
+  "name": "my-app",
+  "version": "1.0.0",
+  "description": "Node.js Application",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'Building...'",
+    "test": "echo 'Testing...'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {}
+}
